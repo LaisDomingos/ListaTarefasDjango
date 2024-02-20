@@ -267,3 +267,68 @@ Quando utiliza o CreateView, ele tem que saber pra onde ele vai quando o cadastr
 - Importamos em views.py: from django.urls import reverse_lazy -> quando passamos o nome da rota, ele mesmo passa a rota completa a parti do nome
 - E acrescentamos na função TodoCrateView(CreateView):
 	 success_url = reverse_lazy("todo_list")
+
+Podemos agora em todo_list.html, criar link que chama para aquela página de cadastrar tarefa, e para isso também utilizamos o name: <a href="{% url 'todo_create' %}" class="btn btn-primary">Nova Tarefa</a>
+
+
+FORMATAÇÃO DO {{ FORM }} SEM RENDERIZAÇÃO:
+
+Vamos usar uma biblioteca crispy para que possamos formatar o {{ form }} sem termos que renderizar e assim conseguimos estilizar, nesse crispy há a possibilidade de formatarmos com o crispy
+No terminal: pip install crispy-bootstrap5
+Precisamos fazer uma instalação no settings:
+"crispy_forms",
+"crispy_bootstrap5",
+
+Também temos que colocar isso em settings:
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+A partir disso colcamos {% load crispy_forms_tags %} no inicio do html todo_form.html, e o main fica da seguinte maneira:
+<main class="container">
+        <h1>Nova Tarefa</h1>
+        <form method="POST">
+          {% csrf_token %}
+          {{ form | crispy }}
+          <button type="submit" class = "btn btn-primary"> Salvar </button>
+	</form>
+        
+    </main>
+
+Os nomes dos inputs, fica como está na base de dados, mas está em inglês e não é isso que queremos, por isso que passar uma configuração a mais no models:
+title = models.CharField(verbose_name="Título", max_length=100, null=False, blank=False)
+deadline = models.DateField(verbose_name="Data de Entrega", null=False, blank=False)-> Utilizamos o verbose_name e colocamos o nome que queremos que apareça
+
+
+ORGANIZAR INSTALAÇÕES:
+
+Podemos criar array e só chama-los nas instalações:
+DJANGO_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+]
+
+THIRD_PARTY_APPS = [
+    "crispy_forms",
+    "crispy_bootstrap5",]
+
+MY_APPS = [
+    "todos.apps.TodosConfig",
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + MY_APPS
+
+
+REAPROVEITAMENTO DE CÓDIGO - HERANÇA DE TEMPLATES:
+
+Crio um html base, na pasta templates, nela vamos colocar tudo que é comum em todas as páginas, isso inclui também as tags padrões do html e onde terá conteudo diferente coloco {% block nome_que_eu_quiser %} {% endblock nome_que_eu_quiser %}, posso colocar vários desse
+
+Na página que vai herdar esse template coloco: {% extends "base.html" %} e colocamos todo o conteúdo dentro {% block nome_que_eu_quiser %} {% endblock nome_que_eu_quiser %}, sendo o nome que está em base.html
+
+Se forem em blocos diferentes, só abrir outro block e colocar o nome
+
+No caso de todo_form, o {% load crispy_forms_tags %}, fica após o extends
