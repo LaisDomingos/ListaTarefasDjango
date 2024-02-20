@@ -1,0 +1,220 @@
+CRIAR AMBIENTE VISUAL:
+
+Para criar um ambiente virtual, no terminal do VS code: python -m venv .venv -> Cria uma pasta de gerenciamento, o segundo venv é o nome da pasta, normalmente se usa esse nome.
+Essa pasta é onde vai ficar as bibliotecas.
+Precisamos ativar esse ambiente e para isso, no terminal: .\.venv\Scripts\activate, quando fazemos isso, tudo que isntalarmos vai ser colocado nesta pasta venv  
+Instalamos o django: pip install django
+
+
+EXPLICAÇÃO DE CADA PARTE DO PROJETO:
+
+manage.py -> carrega todos os módulos de configuração do django
+setup -> pasta inicial do projeto
+	settings.py -> configuraçãos: apps usados, linguagem, banco de dados, templates
+	urls.py -> arquivo principal de rotas
+	wsgi.py -> padrão do python, explica como um projeto python tem conexão com o servidor 
+	asgi.py -> serve para o mesmo que wsgi, mas para aplicações assincronas.
+pastas de app -> pasta dos apps
+	admin.py -> arquivo de configuração do admin que o próprio django entrega por completo 
+	apps.py -> configuração especifica da app criada
+	models.py -> modelos da app 
+	tests.py -> testes automatizado para aquela app
+	views.py -> camada de views
+	migrations -> fica as migrações dos models
+
+Django usa o MTV -> model, templates, views
+	Model -> Base de dados, classes python 
+	Templates -> Camada de visualizção dos dados, interação dos usuários
+	Views -> Ligação entre Model e Templates, o que tem que ser feito quando a requisição foi feita
+
+Apps: gerenciamento de cliente, gerenciamento de produtos...
+Projeto: conjunto de apps
+
+
+CRIAR PROJETO:
+
+Uma pratica que alguns tem é criar com o nome setup
+No terminal: django-admin startproject setup . -> Esse ponto é para que ele não crie uma segunda pasta, já que já possui o twtodos. Ele vai criar a pasta setup, mas o ficheiro manage.py fica no diretório principal
+Iniciar o projeto: python manage.py runserver
+	Posso abrir pelo link que dá no terminal ou por localhost:8000
+
+Em settings.py podemos configurar a linguagem do código e a zona.
+
+CRIAR APP:
+ 
+No terminal:django-admin startapp todos [to do (s) - explicando o nome]
+Temos que instalar a app no settings, o objetivo é que a app seja reutilizável, então pode instalar e desistanlar: coloco uma string com o nome da app ou podemos colocar o caminho completo - todos.apps.TodosConfig (esse TodosConfig foi tirado do ficheiro apps.py que vem configurado já)
+ 
+Em views, criamos funções do que precisa ser feito quando uma requisição foi feita.
+Views: 
+from django.shortcuts import render
+
+def home(request):
+    return render (request, "todos/home.html")
+
+
+Em url.py podemos importa tudo de uma vez, nome da app import views, ou cada função: from todos.views import home, qunado usamos a segunda maneira, ao criar a rota só colocamos path('', home), já na primeira maneira: path('', views.home)
+
+
+CRIAR MODELS:
+
+Quando criamos models, criamos classes e elas por padrão precisam herda de models:
+class Todo(models.Model):
+	title = models.CharField(max_length=100, null=False, blank=False) -> Não pode ser nulo e não pode ser em branco, ou seja, somente espaços
+	created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False), -> Recebe a data e hora automaticamente, sem precisar ser preenchida
+	deadline = models.DateField(null=False, blank=False), -> Só a data
+    finished_at = models.DateField(null=True)
+
+
+Para transforma a classe em banco de dados precisa ir no terminal e colocar: python .\manage.py migrate, mas asism não cria a nossa base de dados, ele apenas cria as migrates do próprio django. Então precisamos criar o nosso: python manage.py makemigrations, e assim cria um ficheiro na pasta migrations onde tem as informações.
+Assim executar o comando anterior novamente, o nome do banco fica o nome da app_model
+
+Se eu faço alguma alteração tem que criar a migração:  python manage.py makemigrations, quando fazemos uma nova mudança cria um novo ficheiro em migrations que contém as mudanças
+
+
+CONFIGURAÇÕES INTERESSANTES:
+
+Na configuração tem Secret_Key e de boa prática não deve ficar exposta dessa maneira, podemos fazer de várias maneiras, uma delas é por uma biblioteca, para isso:
+Instalar: pip install python-decouple
+Na parte inicial do projeto criar um ficheiro chamado .env
+Copiar o Secret_key do settings e colocar em .env, sem as aspas
+Em settings, importa: from decouple import config
+E secret_key fica: SECRET_KEY = config('SECRET_KEY') -> SECRET_KEY sendo o nome que colocou em .env
+Faço o mesmo com o Debug, coloco no .env e chamo em settings: DEBUG = config('DEBUG', cast=bool, default=False) -> vem como uma string, então uso cast para passar para boll e caso esteja vazio defino como false
+Faço o mesmo com ALlowed_Hosts, mas esse em .env coloco: ALLOWED_HOSTS = * pq ele não aceita lista, e na hora de importa o config, tenho que colocar também ", Csv" para ele transformar em lista e na hora de chamar: ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
+
+Podemos também isolar a configuração de dados em um arquivo:
+Para isso precisamos instalar uma biblioteca que faz uma conversão especifica para o Django "pip install dj-database-url"
+Temos que fazer a importação from dj-database-url import parse as db_url -> esse parse é um apelido para chamar
+Em settings tem uma parte de DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}, devemos apagar o default inteiro e passar para:
+DATABASES = {
+    'default': config("DATABASE_URL", default =f'sqlite:///{BASE_DIR / "db.sqlite3" }', cast=db_url)
+}
+Não precisamos, nesse caso colocar no .env pq já uso o default
+ 
+PADRONIZAÇÃO DE CÓDIGO:
+
+Instalar biblioteca : pip install black para fazer a auto fomatação do código
+No terminal coloco balack ., assim ele faz a identação
+Mas para que fique automatico: CTRL + SHIFT + p
+Procuro por Preferences: Open Workspace Settings (JSON) -> colocar na barra de procura setting e vai abrir um ficheiro:
+settings.json que colocamos 
+	{
+    "editor.formatOnSave": true,
+    "python.formatting.provider": "black",
+    "editor.defaultFormatter": "ms-python.black-formatter"
+}
+
+Ele automaticamente faria a identação, mas no meu caso não funcionou, mas se eu colocar no terminal: black ., isso é feito (isso no settings.py)
+
+
+PÁGINA DE LISTAGEM DE TAREFAS:
+
+Criamos um todo_list.html dentro de templates e ignoramos o anterior, chamado home.html
+Como vamos usar configurações/sinteses do Django, vamos instalar um pluggin do VS Code, chamado Django (é do Baptiste Darthenay)
+Ai podemos definir o todo_list.html como um arquivo django-html, posso automatizar naquele settings.json, acrescentando essa linha:
+"files.associations": {
+ 	"**/templates/**/*.html": "django-html"
+ }, 
+
+acrescentamos também essa linha para que ele entenda que ainda é html:
+"emmet.includeLanguages": {
+        "django-html": "html"
+    }
+
+Em views precisamos buscar as informações na base de dados para que mostre, e para isso além da renderização da página tem que passar o que ta sendo enviado, no caso um dicionário python. Exemplo:
+def todo_list(request):
+    nome = "Laís"
+    return render(request, "todos/todo_list.html", {"nome": nome})
+
+E para exibir, vou em todo_list.html:
+<h1>Lista de Tarefas</h1>
+{{ nome }}
+
+
+Posso fazer o mesmo para uma lista:
+def todo_list(request):
+    nome = "Laís"
+    alunos = ["Wally", "Viego", "Morgana"]
+    return render(request, "todos/todo_list.html", {"nome": nome, "alunos" : alunos})
+
+<ul>
+    {% for aluno in alunos %}
+        <li>{{ aluno }}</li>
+    {% endfor %}
+</ul>
+
+Não deve esquecer de colocar a rota em url
+
+
+BUSCAR OS DADOS NO BANCO DE DADOS POR MEIO DA VIEWS:
+
+Temos que importa o models: from .models import Todo -> Nome do model
+Criamos uma variável que possui o objeto para fazer a manipulação:
+def todo_list(request):
+    todos = Todo.objects.all() -> all para pegar tudo
+    return render(request, "todos/todo_list.html", {"todos": todos})
+
+Aqui quero mostrar só o title, no html posso fazer dessa maneira, lembrando que o title é o nome de uma coluna no model:
+	<h1>Lista de Tarefas</h1>
+<ul>
+    {% for todo in todos %}
+        <li>{{ todo.title }}</li>
+    {% endfor %}
+</ul>
+
+Ele não colocou id, mas se eu colocar: {{ todo.id }} ou {{ todo.pk }} vai aparacer o id
+
+<td>{{ todo.finished_at }}</td> -> esse valor pode esta vazio, então ele vai ficar como none, para tirar isso podemos usar um filtro do django e assim coloco o default: <td>{{ todo.finished_at|default:"-" }}</td>
+
+Posso usar If e Else:
+{% if todos %}
+        <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Título</th>
+                <th scope="col">Criado em</th>
+                <th scope="col">Data de entrega</th>
+                <th scope="col">Data de finalização</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+                {% for todo in todos  %}
+                <tr>
+                    <th scope="row">{{ todo.pk }}</th>
+                    <td>{{ todo.title }}</td>
+                    <td>{{ todo.created_at }}</td>
+                    <td>{{ todo.deadline }}</td>
+                    <td>{{ todo.finished_at|default:"-" }}</td>
+                    <td>
+                        <a href="#" class="btn btn-primary btn-sm">Concluir</a>
+                        <a href="#" class="btn btn-danger btn-sm" >Excluir</a>
+                    </td>
+                </tr>
+                {% endfor %}
+              
+            </tbody>
+        </table>
+        {% else %}
+            <p>Não há tarefas cadastradas</p>
+        {% endif %}
+Se tiver dados mostra a tabela, se não mostra o p:
+{% if todos %}
+{% else %}
+{% endif %}
+
+PARA INSERIR DADOS MANUALMENTE:
+
+Instalar MySQL pelo VS, deve ser o que tem a cor laranja e azul(desenvolvido pelo Weijan Chen)
+Aparece um database na barra lateral, clico nele
+Clico em create connection, procura o SQLite [precisa instalar e não consigo istalar]
+
+
+
