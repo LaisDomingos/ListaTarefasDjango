@@ -61,8 +61,8 @@ CRIAR MODELS:
 Quando criamos models, criamos classes e elas por padrão precisam herda de models:
 class Todo(models.Model):
 	title = models.CharField(max_length=100, null=False, blank=False) -> Não pode ser nulo e não pode ser em branco, ou seja, somente espaços
-	created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False), -> Recebe a data e hora automaticamente, sem precisar ser preenchida
-	deadline = models.DateField(null=False, blank=False), -> Só a data
+	created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False) -> Recebe a data e hora automaticamente, sem precisar ser preenchida
+	deadline = models.DateField(null=False, blank=False) -> Só a data
     finished_at = models.DateField(null=True)
 
 
@@ -217,4 +217,53 @@ Aparece um database na barra lateral, clico nele
 Clico em create connection, procura o SQLite [precisa instalar e não consigo istalar]
 
 
+FBV - FUNCTION-BASED VIEW E CBV - CLASS BASED VIEW:
 
+O recomendado é usar CBV. A função que usamos em todo_list é uma FBV e vamos altera-la.
+
+Quando usamos CBV o código fica mais organizado, da pra reutilizar códigos e automatizar. Para funções como inserir, editar e deletar, já possui classes para isso.
+
+
+LISTAGEM DE DADOS USANDO CBV - CLASS BASED VIEW:
+
+Em view importamos: from django.views.generic import ListView.
+
+E ao invés da função: def todo_list(request):
+    todos = Todo.objects.all()
+    return render(request, "todos/todo_list.html", {"todos": todos}), usamos o ListView:
+class TodoListView (ListView):
+    model = Todo
+
+Na url ao invés de importa todo_list, importamos TodoListView e a rota fica seguinte maneira:  path("", TodoListView.as_view())
+Também temos que alterar no html todos os "todos" para "todo_list", ele já procura o nome todo e acrescenta _list
+
+
+REGISTRAR USANDO CBV - CLASS BASED VIEW:
+
+Em view, além de importa ListView tempos que importa CreatView que faz parte do pacote django.views.generic  como o ListView. E criamos a CBV:
+class TodoCrateView(CreateView):
+    model = Todo
+    fields = ["title", "deadline"] -> São os dados que precisam ser preenchidos, no nosso caso são só esses, pois o restante é automatico e o outro só quando for concluído
+
+Criamos uma nova rota: path("create", TodoCrateView.as_view()),
+
+Crio uma página html com: todo_form.html, o nome também é padronizado. Ao ir em http://localhost:8000/create, vai aparecer a configuração que fiz no html. 
+
+Quando criamos o fields, ele já cria uma classe de formulário que envia para a template, então no html posso chamar: {{ form }}, e nesse caso cria dois campos, um para title e outro para deadline. Para que fique melhor, colocamos em uma tag form e criamos um button:
+<form method="POST">
+          {{ form }}
+
+          <button type="submit"> Salvar </button>
+        </form>
+Usando esse form, ele já coloca que não foi preenchidos e se foi preenchido com o tipo de dado errado
+
+CSRF: Uma das seguranças que o django inclementa, é um ataque, então para evitar esse ataque, ele cria um input invisivel com uma chave que django sabe que não é outro site fazendo a requisição.
+
+Então para evitar esse ataque, toda vez que criamos um formulário precisamos colocar dentro do form: {% csrf_token %}
+
+Quando utiliza o CreateView, ele tem que saber pra onde ele vai quando o cadastro é feito com sucesso
+- Para isso temos que colocar nomes nas rotas: path("", TodoListView.as_view(), name="todo_list"), 
+    path("create", TodoCrateView.as_view(), name="todo_create") -> Com isso posso fazer referência a essas rotas usando o name
+- Importamos em views.py: from django.urls import reverse_lazy -> quando passamos o nome da rota, ele mesmo passa a rota completa a parti do nome
+- E acrescentamos na função TodoCrateView(CreateView):
+	 success_url = reverse_lazy("todo_list")
