@@ -332,3 +332,79 @@ Na página que vai herdar esse template coloco: {% extends "base.html" %} e colo
 Se forem em blocos diferentes, só abrir outro block e colocar o nome
 
 No caso de todo_form, o {% load crispy_forms_tags %}, fica após o extends
+
+
+EDITAR USANDO CBV - CLASS BASED VIEW:
+
+No view.py, precisamos importa UpdateView que é da mesma biblioteca de ListView, CreateView.
+A class TodoUpdateView é igual a de criação, a diferença é que ele vai procurar um id especifico:
+class TodoUpdateView(UpdateView):
+    model = Todo
+    fields = ["title", "deadline"]
+    success_url = reverse_lazy("todo_list")
+
+Não podemos esquecer de fazer a rota em url, mas dessa vez a rota vai ter um parametro que no caso vai ser o ID, por padrão o UpdateView ele vai procurar a variável pk, então na rota colocamos o tipo e o nome da variável (pk):
+path("update/<int:>", TodoUpdateView.as_view(), name="todo_update"),
+Assim já consigo ir no localhost e colocar localhost:8000/update/um_id e já consigo editar.
+
+Em todo_form, devo colocar um if para caso tenha o pk apareça um Editar Tarefa, desta maneira:
+{% extends "base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block page_title %} 
+  {% if todo.pk %}
+    Editar Tarefa
+  {% else %}
+    Nova Tarefa
+  {% endif %}
+{% endblock page_title %}
+
+{% block content %}
+  {% if todo.pk %}
+    <h1>Editar Tarefa</h1>
+  {% else %}
+    <h1>Nova Tarefa</h1>
+  {% endif %}
+  <form method="POST">
+    {% csrf_token %}
+    {{ form | crispy }}
+    <button type="submit" class = "btn btn-primary"> Salvar </button>
+  </form>
+{% endblock content %}
+
+Em todo_list.html, criamos um link para Editar e chamar essa página, mas precisa passar o pk também, e para isso passamos da seguinte maneira: <a href="{% url  'todo_update' pk=todo.pk %}" class="btn btn-secondary btn-sm" >Editar</a>
+Esse todo.pk é por causa do for
+
+
+EXCLUSÃO USANDO CBV - CLASS BASED VIEW:
+
+No view.py, precisamos importa DeleteView que é da mesma biblioteca de ListView, CreateView,UpdateView
+Criamos uma rota em url, a rota também recebe id: path("delete/<int:pk>", TodoDeleteView.as_view(), name="todo_delete"),
+Colocmos o link de excluir: <a href="{% url  'todo_delete' pk=todo.pk %}" class="btn btn-danger btn-sm" >Excluir</a>
+
+Precisamos criar um template de confirmação de exclusão que é solicitado pelo DeleteView, o template tem que ter:nomedomodelo_confirm_delete, no nosso caso todo_confirm_delete.
+Nesse template, alé da extensão de base.html, temos que ter um form, com method POSTO, logo tem que ter o {% csrf_token %}
+
+<form action="POST">
+        {% csrf_token %}
+
+        <button type="submit" class="btn btn-danger">Excluir</button>
+        <a href="{% url 'todo_list' %}" class="btn btn-primary">Cancelar</a>
+    </form>
+Caso cancele volta para a lista de tarefas e se Excluir vai passar uma rota com o POST
+
+A classe deve ser assim:
+class TodoDeleteView(DeleteView):
+    model = Todo
+    success_url = reverse_lazy("todo_list")
+
+
+CRIAR PÁGINA DE CONCLUSÃO
+
+Em models, o finished_at está vazio e quando aperta em conclusão queremos apenas que essse campo seja preenchido.
+Nesse caso não terá um view do django para fazer isso, mas usaremos o View para transformar em um CBV. Para isso, temos que importa View da mesma biblioteca do restante 
+
+Para criar a classe, vamos criar os métodos post e get.
+O Get recebe dois parametros, um é que todas as funções em class recebe que é o self e outro é o request
+
