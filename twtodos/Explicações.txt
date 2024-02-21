@@ -405,6 +405,68 @@ CRIAR PÁGINA DE CONCLUSÃO
 Em models, o finished_at está vazio e quando aperta em conclusão queremos apenas que essse campo seja preenchido.
 Nesse caso não terá um view do django para fazer isso, mas usaremos o View para transformar em um CBV. Para isso, temos que importa View da mesma biblioteca do restante 
 
-Para criar a classe, vamos criar os métodos post e get.
-O Get recebe dois parametros, um é que todas as funções em class recebe que é o self e outro é o request
+Para criar a classe, vamos criar o método get.
+O Get recebe dois parametros, um é que todas as funções em class recebe que é o self e outro é o request.
+Além disso precisa saber qual tarefa ta sendo concluida, por isso adicionamos mais um parametro, o de ID.
 
+Para confirmar os id vamos importa: from django.shortcuts import get_object_or_404 e ultilizamos assim na classe de Complete: todo = get_object_or_404(Todo, pk=pk), e assim ele atualiza a coluna finished_at.
+
+Para pegar a data atual, vamos usar a biblioteca: from datetime import date.
+
+Para redirecionar a mudança na página de listagem, temos que imoporta redirect, que é da mesma biblioteca de get_object_or_404
+
+A classe TodoCompleteView fica da seguinte maneira:
+class TodoCompleteView(View):
+    def get(self, request, pk):
+        todo = get_object_or_404(Todo, pk=pk)
+        todo.finished_at = date.today()
+        todo.save() -> para salvar no banco de dados
+        return redirect("todo_list") -> Redireciona tudo para a página todo_list
+
+Definimos a rota: path("complete/<int:pk>", TodoCompleteView.as_view(), name="todo_complete"),
+
+E definimos o link de concluir: <a href="{% url  'todo_complete' pk=todo.pk %}" class="btn btn-primary btn-sm">Concluir</a>
+
+
+ORGANIZAR A APRESENTAÇÃO POR DATA DE ENTREGA
+
+Em models vamos criar a classe Meta que ajuda a passar  configuração para o models e passar informações para os dados. Podemos definir o ordering, que mostra como queremos ordenar. Essa meta deve ficar dentro da classe do model cirado.
+class Meta:
+    ordering = ["deadline"] -> Quero alterar levando em consideração a deadline
+
+Quando fazemos assim ele altera da menor data para o maior, se quisessemos ao contrário, ficaria: ordering = ["-deadline"]
+
+QUANDO JÁ FOR CONCLUÍDA DESABILITAR OS BOTÕES DE CONCLUSÕES E EDITAR
+
+No template todo_list, vamos criar um if:
+<a 
+                  href="{% url  'todo_complete' pk=todo.pk %}" 
+                  class="btn btn-primary btn-sm {% if todo.finished_at %} disabled{% endif %} "
+                >
+                  Concluir
+                </a>
+                <a 
+                  href="{% url  'todo_update' pk=todo.pk %}" 
+                  class="btn btn-secondary btn-sm" 
+                >
+                  Editar
+                </a>
+
+Isso fica dentro da classe do link, então se todo.finished_at tiver algum valor ele fica desabilitado.
+
+
+ORGANIZAÇÃO DE CÓDIGO:
+	
+A view deve ser a mais simples possível, então caso tenha alguma funcionalidade grande ele deve ser passada para models. No nosso caso podemos fazer isso com TodoCOmplete, mesmo que ela não seja grande, caso queiramos acrescentar algo mais nela, ela pode aumentar. 
+Então por isso, vamos passa-la para models: 
+Criamos um método de modelo dentro da class do model, lembrando de importa o date -> def mark_has_complete(self):
+        if not self.finished_at:
+            self.finished_at = date.today()
+            self.save()
+E agora na view chamamos essa função -> class TodoCompleteView(View):
+    def get(self, request, pk):
+        todo = get_object_or_404(Todo, pk=pk)
+        todo.mark_has_complete()
+        return redirect("todo_list")
+
+Assim se alterarmos a regra de negócio, só alteramos em um lugar.
