@@ -1,4 +1,4 @@
-# Gerencidaor de Tarefas com Djonga
+# Gerencidador de Tarefas com Djonga
 
 ## Descrição
 Este é um projeto simples de gerenciamento de tarefas desenvolvido utilizando o framework Django, inspirado pelo tutorial do canal "TreinaWeb" no YouTube. A aplicação permite que novos usuários cadastrem tarefas, editem, excluam e marquem como concluídas.
